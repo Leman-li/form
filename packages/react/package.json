@@ -1,6 +1,7 @@
 {
-  "name": "tform-core",
-  "version": "0.1.2",
+  "private": true,
+  "name": "form-react",
+  "version": "1.0.0",
   "scripts": {
     "start": "dumi dev",
     "docs:build": "dumi build",
@@ -10,19 +11,13 @@
     "prettier": "prettier --write \"**/*.{js,jsx,tsx,ts,less,md,json}\"",
     "test": "umi-test",
     "test:coverage": "umi-test --coverage",
-    "prepublishOnly": "npm run build",
-    "publish:npmjs": "npm publish --registry=https://registry.npmjs.org"
+    "prepublishOnly": "npm run build"
   },
   "module": "es/index.js",
   "typings": "es/index.d.ts",
   "gitHooks": {
     "pre-commit": "lint-staged"
   },
-  "files": [
-    "dist",
-    "es",
-    "lib"
-  ],
   "lint-staged": {
     "*.{js,jsx,less,md,json}": [
       "prettier --write"
@@ -32,16 +27,13 @@
     ]
   },
   "dependencies": {
-    "lodash.get": "^4.4.2",
-    "lodash.set": "^4.3.2",
-    "tapable": "^2.2.1"
+    "react": "^16.12.0 || ^17.0.0",
+    "tform-core": "^0.1.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^5.15.1",
     "@testing-library/react": "^12.1.2",
     "@types/jest": "^27.0.3",
-    "@types/lodash.get": "^4.4.6",
-    "@types/lodash.set": "^4.3.6",
     "@umijs/fabric": "^2.8.1",
     "@umijs/test": "^3.0.5",
     "dumi": "^1.1.0",
