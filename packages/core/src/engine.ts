@@ -22,14 +22,18 @@ export interface FormEngine {
     /** 设置Schema的值 */
     setSchema: (schemas: Array<{ name: string, value: any }>) => void;
     /** 获取某字段的殷勤 */
-    name: (name: Name) => FormItemEngine
+    name: (name: Name) => FormItemEngine;
+
+    setFields: (fields: FieldData[]) => void;
 }
 
-export interface FormItemEngine extends Omit<FormEngine, 'setState' | 'setSchema' | 'name'> {
+export interface FormItemEngine extends Omit<FormEngine, 'setState' | 'setSchema' | 'name' | 'setFields'> {
     /** 设置状态 */
     setState: (state: any) => void;
     /** 设置引擎 */
     setSchema: (schema: any) => void;
+    /** 设置值 */
+    setValue: (value: any) => void;
 }
 
 export enum TapName {
@@ -93,13 +97,13 @@ class FormHook {
  */
 export default class Engine {
     hooks;
-    onChangeHooks;
-    updateStateHooks;
-    updateSchemaHooks;
-    didMountHooks;
-    willUnmountHooks;
-    forceUpdateHooks;
-    store = {};
+    _onChangeHooks;
+    _updateStateHooks;
+    _updateSchemaHooks;
+    _didMountHooks;
+    _willUnmountHooks;
+    _forceUpdateHooks;
+    _store = {};
 
     constructor() {
         this.hooks = {
@@ -110,71 +114,94 @@ export default class Engine {
             /** 整个form卸载完成 */
             willUnmount: new FormHook(TapName.WILL_UNMOUNT, ['fn']),
             /** 这个form强制更新 */
-            forceUpdate:  new FormHook(TapName.FORCE_UPDATE, ['fn'])
+            forceUpdate: new FormHook(TapName.FORCE_UPDATE, ['fn'])
         }
-        this.onChangeHooks = new FormHookMap(key => new FormHook(TapName.ON_Change, ["fn"]));
-        this.updateStateHooks = new FormHookMap(key => new FormHook(TapName.SET_STATE, ["state"]));
-        this.updateSchemaHooks = new FormHookMap(key => new FormHook(TapName.SET_SCHEMA, ["schema"]));
-        this.didMountHooks = new FormHookMap(key => new FormHook(TapName.DID_MOUNT, ["fn"]));
-        this.willUnmountHooks = new FormHookMap(key => new FormHook(TapName.WILL_UNMOUNT, ["fn"]));
-        this.forceUpdateHooks = new FormHookMap(key => new FormHook(TapName.FORCE_UPDATE,['fn']));
+        this._onChangeHooks = new FormHookMap(key => new FormHook(TapName.ON_Change, ["fn"]));
+        this._updateStateHooks = new FormHookMap(key => new FormHook(TapName.SET_STATE, ["state"]));
+        this._updateSchemaHooks = new FormHookMap(key => new FormHook(TapName.SET_SCHEMA, ["schema"]));
+        this._didMountHooks = new FormHookMap(key => new FormHook(TapName.DID_MOUNT, ["fn"]));
+        this._willUnmountHooks = new FormHookMap(key => new FormHook(TapName.WILL_UNMOUNT, ["fn"]));
+        this._forceUpdateHooks = new FormHookMap(key => new FormHook(TapName.FORCE_UPDATE, ['fn']));
     }
 
     /** 设置字段的值 */
     setFields(fields: FieldData[]) {
-        fields.forEach(({ name, value }) => set(this.store, name, value))
+        fields.forEach(({ name, value }) => {
+            set(this._store, name, value);
+            this.name(name).forceUpdate.call(undefined)
+        })
     }
 
     /** 设置所有字段的值 */
     setFieldsValue(values: any) {
-        this.store = values
+        this._store = values;
+        this.hooks.forceUpdate.call(undefined)
     }
 
     /** 获取单个字段的值 */
     getFieldValue(name: Name) {
-        return get(this.store, name)
+        return get(this._store, name)
     }
 
     /** 获取所有字段的值 */
     getFieldsValue() {
-        return this.store
+        return this._store
     }
 
     /** 重置字段 */
     resetFields() {
-        this.store = {}
+        this._store = {}
     }
 
     /** 注册插件 */
     registerPlugins(plugins: FormPlugin[]) {
-        plugins.forEach(plugin => plugin.apply(this.formEngine()))
+        plugins.forEach(plugin => plugin.apply(this.pluginApi().formEngine()))
     }
 
-    name(name: Name): FormItemEngine {
+    name(name: Name) {
         return {
-            /** 单个组件改变 */
-            // @ts-ignore
-            onChange: fn => this.onChangeHooks.for(name).on(fn),
-            /** 单个组件设置状态 */
-            setState: state => this.updateStateHooks.for(name).call(state),
-            /** 单个组件设置schema */
-            setSchema: schema => this.updateSchemaHooks.for(name).call(schema),
-            /** 加载完成 */
-            didMount: fn => this.didMountHooks.for(name).on(fn),
-            /** 卸载完成 */
-            willUnmount: fn => this.willUnmountHooks.for(name).on(fn)
+            onChange: this._onChangeHooks.for(name),
+            setState: this._updateStateHooks.for(name),
+            setSchema: this._updateSchemaHooks.for(name),
+            didMount: this._didMountHooks.for(name),
+            willUnmount: this._willUnmountHooks.for(name),
+            forceUpdate: this._forceUpdateHooks.for(name)
         }
     }
 
-    formEngine(): FormEngine {
+    pluginApi() {
+        const _this: Engine = this
         return {
-            didMount: (fn) => this.hooks.didMount.on(fn),
-            /** @ts-ignore */
-            onChange: fn => this.hooks.onChange.on(fn),
-            willUnmount: fn => this.hooks.willUnmount.on(fn),
-            name: name => this.name(name),
-            setState: states => states.forEach(({ name, value }) => this.name(name).setState(value)),
-            setSchema: schemas => schemas.forEach(({ name, value }) => this.name(name).setState(value))
+            name(name: Name): FormItemEngine {
+                return {
+                    /** 单个组件改变 */
+                    // @ts-ignore
+                    onChange: fn => _this.name(name).onChange.on(fn),
+                    /** 单个组件设置状态 */
+                    setState: state => _this.name(name).setState.call(state),
+                    /** 单个组件设置schema */
+                    setSchema: schema => _this.name(name).setSchema.call(schema),
+                    /** 加载完成 */
+                    didMount: fn => _this.name(name).didMount.on(fn),
+                    /** 卸载完成 */
+                    willUnmount: fn => _this.name(name).willUnmount.on(fn),
+
+                    setValue: (value: any) => _this.setFields([{ name, value }])
+                }
+            },
+
+            formEngine(): FormEngine {
+                return {
+                    didMount: (fn) => _this.hooks.didMount.on(fn),
+                    setFields: _this.setFields.bind(_this),
+                    /** @ts-ignore */
+                    onChange: fn => _this.hooks.onChange.on(fn),
+                    willUnmount: fn => _this.hooks.willUnmount.on(fn),
+                    name: name => this.name(name),
+                    setState: states => states.forEach(({ name, value }) => this.name(name).setState(value)),
+                    setSchema: schemas => schemas.forEach(({ name, value }) => this.name(name).setState(value))
+                }
+            }
         }
     }
 }

@@ -1,0 +1,49 @@
+.tform{
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    color: #000000d9;
+    font-size: 14px;
+    list-style: none;
+    .tform-item{
+        box-sizing: border-box;
+        margin: 0 0 24px;
+        padding: 0;
+        color: #000000d9;
+        font-size: 14px;
+        font-variant: tabular-nums;
+        line-height: 1.5715;
+        list-style: none;
+        font-feature-settings: "tnum";
+        vertical-align: top;
+        .tform-item-required::before{
+            display: inline-block;
+            margin-right: 4px;
+            color: #ff4d4f;
+            font-size: 14px;
+            font-family: SimSun,sans-serif;
+            line-height: 1;
+            content: "*";
+        }
+        .tform-item-label{
+            display: inline-flex;
+            align-items: center;
+        }
+        .tform-item-control{
+            position: relative;
+
+            .tform-item-error-info{
+                color: #ff4d4f;
+                position: absolute;
+                left: 0;
+                bottom: -22px;
+            }
+        }
+        label::after{
+            content: ":";
+            position: relative;
+            top: -0.5px;
+            margin: 0 8px 0 2px;
+        }
+    }
+}

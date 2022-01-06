@@ -1,4 +1,5 @@
 import { FormPlugin } from "tform-core";
+import { Name } from "tform-core/es/engine";
 
 
 export interface FormProps {
@@ -6,11 +7,11 @@ export interface FormProps {
     plugins?: FormPlugin[],
     
     /** schema */
-    schema: any;
+    schema?: any;
 
     /** uiSchema */
     uiSchema?: any;
 
     /** 数据变化时触发 */
-    onChange?: (values: Record<string, any>) => void;
+    onChange?: (values: Record<string, any>, changeName?: Name) => void;
 }
